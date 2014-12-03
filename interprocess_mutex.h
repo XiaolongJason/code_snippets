@@ -15,12 +15,12 @@ class ScopedLock
 public:
   explicit ScopedLock(T& mutex) : mutex_(mutex)
   {
-    mutex_.Lock();
+		mutex_.lock();
   }
 
   ~ScopedLock()
   {
-    mutex_.Unlock();
+		mutex_.unlock();
   }
 
 private:
@@ -37,7 +37,14 @@ public:
   InterprocessMutex(const tstring& name)
     :name_(name)
   {
-    mutex_ = CreateMutex(NULL, FALSE, name_.c_str());
+		SECURITY_DESCRIPTOR security_descriptor;
+		::InitializeSecurityDescriptor(&security_descriptor, SECURITY_DESCRIPTOR_REVISION);
+		::SetSecurityDescriptorDacl(&security_descriptor,TRUE,NULL,FALSE);
+		SECURITY_ATTRIBUTES security_attributes;
+		security_attributes.nLength = sizeof SECURITY_ATTRIBUTES;
+		security_attributes.bInheritHandle = FALSE;
+		security_attributes.lpSecurityDescriptor = &security_descriptor;
+		mutex_ = CreateMutex(&security_attributes, FALSE, name_.c_str());
     if (!mutex_)
     {
       std::cout << "CreateMutex Error :" << name_ << std::endl;
@@ -49,10 +56,11 @@ public:
     if (mutex_)
     {
       CloseHandle(mutex_);
+	  mutex_ = NULL;
     }
   }
 
-  void Lock()
+	void lock()
   {
     if (mutex_)
     {
@@ -60,7 +68,7 @@ public:
     }
   }
   
-  void Unlock()
+	void unlock()
   {
     if (mutex_)
     {
